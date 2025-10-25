@@ -269,8 +269,9 @@ AST *parse(Token *arr, int l, int r, GrammarState S) {
     // TODO: Implement MUL_EXPR.
     // hint: Take ADD_EXPR as reference.
   case UNARY_EXPR:
-    if (arr[l].kind == PLUS || arr[l].kind == MINUS) {
-      now = new_AST(arr[l].kind == PLUS ? PLUS : MINUS, 0);
+    if (arr[l].kind == PLUS || arr[l].kind == MINUS || arr[l].kind == PREINC ||
+        arr[l].kind == PREDEC) {
+      now = new_AST(arr[l].kind, 0);
       now->mid = parse(arr, l + 1, r, UNARY_EXPR);
       return now;
     }
@@ -353,6 +354,7 @@ void semantic_check(AST *now) {
 }
 
 void codegen(AST *root) {
+
   // TODO: Implement your codegen in your own way.
   // You may modify the function parameter or the return type, even the whole
   // structure as you wish.
