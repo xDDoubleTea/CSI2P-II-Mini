@@ -110,8 +110,10 @@ int main() {
     if (len == 0)
       continue;
     AST *ast_root = parser(content, len);
-    semantic_check(ast_root);
-    codegen(ast_root);
+    token_print(content, len);
+    AST_print(ast_root);
+    // semantic_check(ast_root);
+    // codegen(ast_root);
     free(content);
     freeAST(ast_root);
   }
@@ -257,9 +259,22 @@ AST *parse(Token *arr, int l, int r, GrammarState S) {
     }
     return parse(arr, l, r, MUL_EXPR);
   case MUL_EXPR:
+    if ((nxt = findNextSection(arr, r, l, condMUL)) != -1) {
+      now = new_AST(arr[nxt].kind, 0);
+      now->lhs = parse(arr, l, nxt - 1, MUL_EXPR);
+      now->rhs = parse(arr, nxt + 1, r, UNARY_EXPR);
+      return now;
+    }
+    return parse(arr, l, r, UNARY_EXPR);
     // TODO: Implement MUL_EXPR.
     // hint: Take ADD_EXPR as reference.
   case UNARY_EXPR:
+    if (arr[l].kind == PLUS || arr[l].kind == MINUS) {
+      now = new_AST(arr[l].kind == PLUS ? PLUS : MINUS, 0);
+      now->mid = parse(arr, l + 1, r, UNARY_EXPR);
+      return now;
+    }
+    return parse(arr, l, r, POSTFIX_EXPR);
     // TODO: Implement UNARY_EXPR.
     // hint: Take POSTFIX_EXPR as reference.
   case POSTFIX_EXPR:
