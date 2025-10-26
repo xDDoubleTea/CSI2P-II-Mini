@@ -12,3 +12,5 @@ test: main.c ./AssemblyCompiler/ASMC.cpp
 	./main.out | ./ASMC.out
 check: test.cpp
 	$(CXX) $(CFLAGS) test.cpp -o test.out
+mini: mini1.c
+	$(CC) $(CFLAGS) mini1.c -o mini1.out
