@@ -109,6 +109,16 @@ int tests(int &x, int &y, int &z, int idx) {
     x = 1;
     y = 2;
     return -1;
+  case 13:
+    x = (y++) + 0;
+    x = (y++) * 0;
+    x = (y++) / 1;
+    x = (y++) % 1;
+    x = (y++) - 0;
+    z = (++y) / 1;
+    x = (z--) - (y--);
+    ;
+    return 0;
   default:
     return -1;
   }

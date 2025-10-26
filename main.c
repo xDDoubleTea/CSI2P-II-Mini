@@ -473,6 +473,22 @@ void invalidate_reg(int iden, int reg_num) {
   }
 }
 
+int side_effect_free(AST *root) {
+  if (!root)
+    return 1;
+  switch (root->kind) {
+  case ASSIGN:
+  case PREINC:
+  case PREDEC:
+  case POSTINC:
+  case POSTDEC:
+    return 0;
+  default:
+    return side_effect_free(root->lhs) && side_effect_free(root->mid) &&
+           side_effect_free(root->rhs);
+  }
+}
+
 int codegen(AST *root, int depth) {
   if (!root) {
     return -1;
@@ -535,15 +551,44 @@ int codegen(AST *root, int depth) {
     // printf("reg_rhs = %d\n", reg_rhs);
     return reg_rhs;
   case ADD:
+    if (root->kind == ADD) {
+      if (root->lhs->kind == CONSTANT && root->lhs->val == 0 &&
+          side_effect_free(root->rhs)) {
+        return codegen(root->rhs, depth + 1);
+      }
+      if (root->rhs->kind == CONSTANT && root->rhs->val == 0 &&
+          side_effect_free(root->lhs)) {
+        return codegen(root->lhs, depth + 1);
+      }
+    }
   case SUB:
+    if (root->kind == SUB) {
+      if (root->rhs->kind == CONSTANT && root->rhs->val == 0 &&
+          side_effect_free(root->lhs)) {
+        return codegen(root->lhs, depth + 1);
+      }
+      if (root->lhs->kind == IDENTIFIER && root->rhs->kind == IDENTIFIER &&
+          root->lhs->val == root->rhs->val && side_effect_free(root->lhs) &&
+          side_effect_free(root->rhs)) {
+        reg_dest = reg++;
+        printf("add r%d 0 0\n", reg_dest);
+        if (reg_dest >= 0 && reg_dest < 8)
+          reg_holds[reg_dest] = 0;
+        return reg_dest;
+      }
+    }
   case MUL:
-    if ((root->lhs->kind == CONSTANT && root->lhs->val == 0) ||
-        (root->rhs->kind == CONSTANT && root->rhs->val == 0)) {
-      reg_dest = reg++;
-      printf("add r%d 0 0\n", reg_dest);
-      if (reg_dest >= 0 && reg_dest < 8)
-        reg_holds[reg_dest] = 0;
-      return reg_dest;
+    if (root->kind == MUL) {
+      if ((root->lhs->kind == CONSTANT && root->lhs->val == 0) ||
+          (root->rhs->kind == CONSTANT && root->rhs->val == 0)) {
+        if (side_effect_free(root->lhs) && side_effect_free(root->rhs)) {
+          reg_dest = reg++;
+          printf("add r%d 0 0\n", reg_dest);
+          if (reg_dest >= 0 && reg_dest < 8)
+            reg_holds[reg_dest] = 0;
+          return reg_dest;
+        }
+      }
     }
   case DIV:
   case REM:
@@ -555,10 +600,22 @@ int codegen(AST *root, int depth) {
       printf("sub r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
     else if (root->kind == MUL)
       printf("mul r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
-    else if (root->kind == DIV)
+    else if (root->kind == DIV) {
+      if ((root->lhs->kind == IDENTIFIER && root->rhs->kind == CONSTANT &&
+           root->rhs->val == 1)) {
+        printf("add r%d r%d 0\n", reg_lhs, reg_lhs);
+        return reg_lhs;
+      }
       printf("div r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
-    else
+    } else if (root->kind == REM) {
+      if ((root->lhs->kind == IDENTIFIER && root->rhs->kind == CONSTANT &&
+           root->rhs->val == 1)) {
+        // If the right operand is 1, we can optimize the remainder to 0.
+        printf("add r%d 0 0\n", reg_lhs);
+        return reg_lhs;
+      }
       printf("rem r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
+    }
     reg--;
     if (reg_lhs >= 0 && reg_lhs < 8) {
       reg_holds[reg_lhs] = 0;
