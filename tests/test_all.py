@@ -3,7 +3,7 @@ import subprocess
 import random
 from typing import List
 
-testcases_len = 9
+testcases_len = 12
 
 tests = [f"testcase/test{i + 1}.in" for i in range(testcases_len)]
 
@@ -57,7 +57,7 @@ def check_asmc_output(output: str, randomint: List[str], idx: int) -> bool:
         stderr=subprocess.PIPE,
     )
     result = check.stdout.decode()
-    # print(output)
+    # print(f"#{idx} - {output}")
     # print(re.findall(r"x, y, z = .*", result))
     # print(re.findall(r"x, y, z = .*", output))
     print(re.findall(r".*[Cc]ycle.*", output))

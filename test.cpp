@@ -81,6 +81,34 @@ int tests(int &x, int &y, int &z, int idx) {
     y = x;
     z = y + x + z;
     return 0;
+  case 10:
+    x = 10;
+    y = x;
+    z = y;
+    x = 20;
+    y = x;
+    z = z + y + x;
+    x = z;
+    y = z;
+    x = 5 + 5;
+    z = y + x;
+    return 0;
+  case 11:
+    x = 10;
+    y = 20;
+    z = 30;
+    x = y++ + z;
+    z = y + x;
+    y = --z + x++;
+    x = x + y + z;
+    return 0;
+  case 12:
+    x = 5;
+    y = 10;
+    // z = (x + y - 8) * (100 / (5 - 5));
+    x = 1;
+    y = 2;
+    return -1;
   default:
     return -1;
   }
