@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <limits.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +10,7 @@ For the language grammar, please refer to Grammar section on the github page:
   https://github.com/lightbulb12294/CSI2P-II-Mini1#grammar
 */
 
+#define NOT_A_CONSTANT INT_MIN
 #define MAX_LENGTH 200
 typedef enum {
   ASSIGN,
@@ -103,9 +105,13 @@ void freeAST(AST *now);
 void token_print(Token *in, size_t len);
 // Print AST tree.
 void AST_print(AST *head);
-
+// Check if the statement does something
 int check_assign_or_inc_dec(Token *content, size_t len);
+int eval_constant(AST *root);
+
 char input[MAX_LENGTH];
+
+char reg_holds[8] = {0};
 
 int reg = 0;
 
@@ -123,7 +129,9 @@ int main() {
       AST_print(ast_root);
     }
     semantic_check(ast_root);
-
+    reg = 0;
+    for (int i = 0; i < 8; ++i)
+      reg_holds[i] = 0;
     codegen(ast_root, 0);
     reg = 0;
     free(content);
@@ -131,7 +139,61 @@ int main() {
   }
   return 0;
 }
+int eval_constant(AST *root) {
+  if (!root)
+    return NOT_A_CONSTANT;
+  int lhs_val, rhs_val, mid_val;
+  switch (root->kind) {
+  case CONSTANT:
+    return root->val; // Base case
 
+  case PLUS:
+    return eval_constant(root->mid);
+  case MINUS:
+    mid_val = eval_constant(root->mid);
+    return (mid_val == NOT_A_CONSTANT) ? NOT_A_CONSTANT : -mid_val;
+
+  // Binary operations
+  case ADD:
+  case SUB:
+  case MUL:
+  case DIV:
+  case REM:
+    lhs_val = eval_constant(root->lhs);
+    rhs_val = eval_constant(root->rhs);
+
+    // If either side isn't a constant, we fail
+    if (lhs_val == NOT_A_CONSTANT || rhs_val == NOT_A_CONSTANT) {
+      return NOT_A_CONSTANT;
+    }
+
+    // Both sides are constant! Fold them.
+    if (root->kind == ADD)
+      return lhs_val + rhs_val;
+    if (root->kind == SUB)
+      return lhs_val - rhs_val;
+    if (root->kind == MUL)
+      return lhs_val * rhs_val;
+    if (rhs_val == 0)
+      err("Compile-time division by zero.");
+    if (root->kind == DIV)
+      return lhs_val / rhs_val;
+    if (root->kind == REM)
+      return lhs_val % rhs_val;
+
+  case LPAR:
+    return eval_constant(root->mid);
+
+  case IDENTIFIER:
+  case ASSIGN:
+  case PREINC:
+  case PREDEC:
+  case POSTINC:
+  case POSTDEC:
+  default:
+    return NOT_A_CONSTANT;
+  }
+}
 int check_assign_or_inc_dec(Token *content, size_t len) {
   for (int i = 0; i < len; ++i) {
     if (content[i].kind == PREDEC || content[i].kind == PREINC ||
@@ -401,9 +463,30 @@ int get_var_addr(int c) {
   return -1;
 }
 
+int get_iden_reg(int iden) { return iden - 'x'; }
+
+void invalidate_reg(int iden, int reg_num) {
+  for (int i = 0; i < 8; ++i) {
+    if (reg_holds[i] == iden && i != reg_num) {
+      reg_holds[i] = 0;
+    }
+  }
+}
+
 int codegen(AST *root, int depth) {
   if (!root) {
     return -1;
+  }
+  int const_val = eval_constant(root);
+  if (const_val != NOT_A_CONSTANT) {
+    // This entire branch folds to a single value
+    // Generate code to just load that value.
+    int reg_dest = reg++;
+    if (const_val >= 0)
+      printf("add r%d 0 %d\n", reg_dest, const_val);
+    else
+      printf("sub r%d 0 %d\n", reg_dest, -const_val);
+    return reg_dest;
   }
   int reg_lhs, reg_rhs, reg_dest, reg_mid;
   int var_addr;
@@ -417,16 +500,25 @@ int codegen(AST *root, int depth) {
     if (root->val >= 0) {
       printf("add r%d 0 %d\n", reg_dest, root->val);
     } else {
-      printf("sub r%d 0 %d\n", reg_dest, root->val);
+      printf("sub r%d 0 %d\n", reg_dest, -root->val);
     }
     return reg_dest;
   case IDENTIFIER:
     reg_dest = reg++;
+    for (int i = 0; i < 8; ++i) {
+      if (reg_holds[i] == root->val) {
+        printf("add r%d r%d 0\n", reg_dest, i);
+        return reg_dest;
+      }
+    }
     var_addr = get_var_addr(root->val);
     printf("load r%d [%d]\n", reg_dest, get_var_addr(root->val));
+    if (reg_dest < 8) {
+      reg_holds[reg_dest] = root->val;
+    }
+
     return reg_dest;
   case ASSIGN:
-    reg_lhs = codegen(root->lhs, depth + 1);
     reg_rhs = codegen(root->rhs, depth + 1);
 
     lhs_var = root->lhs;
@@ -436,38 +528,42 @@ int codegen(AST *root, int depth) {
     var_addr = get_var_addr(lhs_var->val);
 
     printf("store [%d] r%d\n", var_addr, reg_rhs);
+    if (reg_rhs >= 0 && reg_rhs < 8)
+      reg_holds[reg_rhs] = lhs_var->val;
+    invalidate_reg(lhs_var->val, reg_rhs);
     // printf("reg_lhs = %d\n", reg_lhs);
     // printf("reg_rhs = %d\n", reg_rhs);
     return reg_rhs;
   case ADD:
-    reg_lhs = codegen(root->lhs, depth + 1);
-    reg_rhs = codegen(root->rhs, depth + 1);
-    printf("add r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
-    reg--;
-    return reg_lhs;
   case SUB:
-    reg_lhs = codegen(root->lhs, depth + 1);
-    reg_rhs = codegen(root->rhs, depth + 1);
-    printf("sub r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
-    reg--;
-    return reg_lhs;
   case MUL:
-    reg_lhs = codegen(root->lhs, depth + 1);
-    reg_rhs = codegen(root->rhs, depth + 1);
-    printf("mul r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
-    reg--;
-    return reg_lhs;
+    if ((root->lhs->kind == CONSTANT && root->lhs->val == 0) ||
+        (root->rhs->kind == CONSTANT && root->rhs->val == 0)) {
+      reg_dest = reg++;
+      printf("add r%d 0 0\n", reg_dest);
+      if (reg_dest >= 0 && reg_dest < 8)
+        reg_holds[reg_dest] = 0;
+      return reg_dest;
+    }
   case DIV:
-    reg_lhs = codegen(root->lhs, depth + 1);
-    reg_rhs = codegen(root->rhs, depth + 1);
-    printf("div r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
-    reg--;
-    return reg_lhs;
   case REM:
     reg_lhs = codegen(root->lhs, depth + 1);
     reg_rhs = codegen(root->rhs, depth + 1);
-    printf("rem r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
+    if (root->kind == ADD)
+      printf("add r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
+    else if (root->kind == SUB)
+      printf("sub r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
+    else if (root->kind == MUL)
+      printf("mul r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
+    else if (root->kind == DIV)
+      printf("div r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
+    else
+      printf("rem r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
     reg--;
+    if (reg_lhs >= 0 && reg_lhs < 8) {
+      reg_holds[reg_lhs] = 0;
+      reg_holds[reg_rhs] = 0;
+    }
     return reg_lhs;
   case PREINC:
     lhs_var = root->mid;
@@ -478,6 +574,9 @@ int codegen(AST *root, int depth) {
     printf("load r%d [%d]\n", reg_mid, var_addr);
     printf("add r%d r%d 1\n", reg_mid, reg_mid);
     printf("store [%d] r%d\n", var_addr, reg_mid);
+    if (reg_mid >= 0 && reg_mid < 8)
+      reg_holds[reg_mid] = lhs_var->val;
+    invalidate_reg(lhs_var->val, reg_mid);
     return reg_mid;
   case PREDEC:
     lhs_var = root->mid;
@@ -488,6 +587,9 @@ int codegen(AST *root, int depth) {
     printf("load r%d [%d]\n", reg_mid, var_addr);
     printf("sub r%d r%d 1\n", reg_mid, reg_mid);
     printf("store [%d] r%d\n", var_addr, reg_mid);
+    if (reg_mid >= 0 && reg_mid < 8)
+      reg_holds[reg_mid] = lhs_var->val;
+    invalidate_reg(lhs_var->val, reg_mid);
     return reg_mid;
   case POSTINC:
     lhs_var = root->mid;
@@ -504,7 +606,9 @@ int codegen(AST *root, int depth) {
     printf("store [%d] r%d\n", var_addr, reg_temp);
 
     reg--; // Frees reg_temp
-
+    if (reg_dest >= 0 && reg_dest < 8)
+      reg_holds[reg_dest] = lhs_var->val;
+    invalidate_reg(lhs_var->val, reg_dest);
     return reg_dest;
   case POSTDEC:
     lhs_var = root->mid;
@@ -522,6 +626,9 @@ int codegen(AST *root, int depth) {
 
     reg--;
 
+    if (reg_dest >= 0 && reg_dest < 8)
+      reg_holds[reg_dest] = lhs_var->val;
+    invalidate_reg(lhs_var->val, reg_dest);
     return reg_dest;
   case LPAR:
     return codegen(root->mid, depth + 1);
@@ -532,6 +639,8 @@ int codegen(AST *root, int depth) {
   case MINUS:
     reg_mid = codegen(root->mid, depth + 1);
     printf("sub r%d 0 r%d\n", reg_mid, reg_mid);
+    if (reg_mid >= 0 && reg_mid < 8)
+      reg_holds[reg_mid] = 0;
     return reg_mid;
   case END:
     return 0;

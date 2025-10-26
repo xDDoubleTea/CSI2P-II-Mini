@@ -516,7 +516,7 @@ int codegen(AST *root, int depth) {
     if (reg_dest < 8) {
       reg_holds[reg_dest] = root->val;
     }
-
+    invalidate_reg(root->val, reg_dest);
     return reg_dest;
   case ASSIGN:
     reg_rhs = codegen(root->rhs, depth + 1);
