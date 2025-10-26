@@ -31,6 +31,7 @@ int tests(int &x, int &y, int &z, int idx) {
            (x /
             (y %
              (z + (x - (y * (z / (x % (y + (z - (x * (y / (z % 5)))))))))))))));
+    // std::cout << x << ", " << y << ", " << z << std::endl;
     y = (((((((((((((((x + 5) - y) * z) / x) % y) + z) - x) * y) / z) % x) +
              y) -
             z) *

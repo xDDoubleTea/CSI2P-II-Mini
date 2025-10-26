@@ -1,12 +1,9 @@
-load r0 [0]
-load r1 [4]
-load r2 [8]
-add r3 r2 1
-store [8] r3
-store [4] r2
-store [0] r2
+load r0 [8]
+add r1 r0 1
+store [8] r1
+store [4] r0
+store [0] r0
 load r0 [0]
 sub r0 r0 1
 store [0] r0
-load r0 [4]
 Compile Error!

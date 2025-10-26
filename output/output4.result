@@ -1,66 +1,64 @@
 load r0 [0]
+load r1 [4]
+load r2 [8]
+load r3 [0]
+load r4 [4]
+load r5 [8]
+load r6 [0]
+load r7 [4]
+load r8 [8]
+load r9 [0]
+load r10 [4]
+load r11 [8]
+load r12 [0]
+load r13 [4]
+load r14 [8]
+add r15 0 5
+rem r14 r14 r15
+div r13 r13 r14
+mul r12 r12 r13
+sub r11 r11 r12
+add r10 r10 r11
+rem r9 r9 r10
+div r8 r8 r9
+mul r7 r7 r8
+sub r6 r6 r7
+add r5 r5 r6
+rem r4 r4 r5
+div r3 r3 r4
+mul r2 r2 r3
+sub r1 r1 r2
+add r0 r0 r1
+store [0] r0
+load r0 [0]
+add r1 0 5
+add r0 r0 r1
+load r1 [4]
+sub r0 r0 r1
+load r1 [8]
+mul r0 r0 r1
 load r1 [0]
-load r2 [4]
-load r3 [8]
-load r4 [0]
-load r5 [4]
-load r6 [8]
-load r7 [0]
-load r8 [4]
-load r9 [8]
-load r10 [0]
-load r11 [4]
-load r12 [8]
-load r13 [0]
-load r14 [4]
-load r15 [8]
-add r16 0 5
-rem r15 r15 r16
-div r14 r14 r15
-mul r13 r13 r14
-sub r12 r12 r13
-add r11 r11 r12
-rem r10 r10 r11
-div r9 r9 r10
-mul r8 r8 r9
-sub r7 r7 r8
-add r6 r6 r7
-rem r5 r5 r6
-div r4 r4 r5
-mul r3 r3 r4
-sub r2 r2 r3
-add r1 r1 r2
-store [0] r1
-load r0 [4]
+div r0 r0 r1
+load r1 [4]
+rem r0 r0 r1
+load r1 [8]
+add r0 r0 r1
 load r1 [0]
-add r2 0 5
-add r1 r1 r2
-load r2 [4]
-sub r1 r1 r2
-load r2 [8]
-mul r1 r1 r2
-load r2 [0]
-div r1 r1 r2
-load r2 [4]
-rem r1 r1 r2
-load r2 [8]
-add r1 r1 r2
-load r2 [0]
-sub r1 r1 r2
-load r2 [4]
-mul r1 r1 r2
-load r2 [8]
-div r1 r1 r2
-load r2 [0]
-rem r1 r1 r2
-load r2 [4]
-add r1 r1 r2
-load r2 [8]
-sub r1 r1 r2
-load r2 [0]
-mul r1 r1 r2
-load r2 [4]
-div r1 r1 r2
-load r2 [8]
-rem r1 r1 r2
-store [4] r1
+sub r0 r0 r1
+load r1 [4]
+mul r0 r0 r1
+load r1 [8]
+div r0 r0 r1
+load r1 [0]
+rem r0 r0 r1
+load r1 [4]
+add r0 r0 r1
+load r1 [8]
+sub r0 r0 r1
+load r1 [0]
+mul r0 r0 r1
+load r1 [4]
+div r0 r0 r1
+load r1 [8]
+rem r0 r0 r1
+store [4] r0
