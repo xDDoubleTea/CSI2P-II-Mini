@@ -3,7 +3,12 @@ int main() {
   int x = 2;
   int y = 3;
   int z = 5;
-  x = x + (y + (z + (x + y + z)));
+  x = 5;
+  y = 6;
+  x = (3 + 5) - 8 * (10 / 2);
+  y = x * x - (12 * 12);
+  z = z / z + (+-+-+-+-z - z) + (x * z) % z + (y + z) * 0 - x * y;
+  x = (-y * -y - (y * y - 4 * x * z)) / (2 * x * 2 * x);
   printf("x=%d, y=%d, z=%d\n", x, y, z);
   return 0;
 }

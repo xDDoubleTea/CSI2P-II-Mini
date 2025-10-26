@@ -5,13 +5,13 @@ store [4] r0
 sub r0 0 32
 store [0] r0
 load r0 [0]
-load r1 [0]
+add r1 r0 0
 mul r0 r0 r1
 add r1 0 144
 sub r0 r0 r1
 store [4] r0
 load r0 [8]
-load r1 [8]
+add r1 r0 0
 div r0 r0 r1
 load r1 [8]
 sub r1 0 r1
@@ -27,16 +27,12 @@ mul r1 r1 r2
 load r2 [8]
 rem r1 r1 r2
 add r0 r0 r1
-load r1 [4]
-load r2 [8]
-add r1 r1 r2
-add r2 0 0
-add r3 0 0
-add r0 r0 r3
-load r3 [0]
-load r4 [4]
-mul r3 r3 r4
-sub r0 r0 r3
+add r1 0 0
+add r0 r0 r1
+load r1 [0]
+load r2 [4]
+mul r1 r1 r2
+sub r0 r0 r1
 store [8] r0
 load r0 [4]
 sub r0 0 r0
@@ -44,7 +40,7 @@ load r1 [4]
 sub r1 0 r1
 mul r0 r0 r1
 load r1 [4]
-load r2 [4]
+add r2 r1 0
 mul r1 r1 r2
 add r2 0 4
 load r3 [0]

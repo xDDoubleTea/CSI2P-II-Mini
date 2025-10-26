@@ -3,7 +3,9 @@ import subprocess
 import random
 from typing import List
 
-tests = [f"testcase/test{i + 1}.in" for i in range(6)]
+testcases_len = 9
+
+tests = [f"testcase/test{i + 1}.in" for i in range(testcases_len)]
 
 
 def get_testcase(idx: int):
@@ -58,6 +60,7 @@ def check_asmc_output(output: str, randomint: List[str], idx: int) -> bool:
     # print(output)
     # print(re.findall(r"x, y, z = .*", result))
     # print(re.findall(r"x, y, z = .*", output))
+    print(re.findall(r".*[Cc]ycle.*", output))
     if not output:
         return bool(re.findall(r"res = -1", result))
     else:
@@ -70,7 +73,7 @@ def test():
     subprocess.run(["make", "check"])
     subprocess.run(["make", "main"])
     print()
-    for i in range(6):
+    for i in range(testcases_len):
         gen_output(i)
         assert compile_generated_output(i)
 
