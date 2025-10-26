@@ -90,7 +90,9 @@ int condRPAR(Kind kind);
 // automatically if check failed.
 void semantic_check(AST *now);
 // Generate ASM code.
-void codegen(AST *root);
+int codegen(AST *root, int depth);
+// Get Identifier memory address
+int get_var_addr(int c);
 // Free the whole AST.
 void freeAST(AST *now);
 
@@ -103,6 +105,8 @@ void AST_print(AST *head);
 
 char input[MAX_LENGTH];
 
+int reg = 0;
+
 int main() {
   while (fgets(input, MAX_LENGTH, stdin) != NULL) {
     Token *content = lexer(input);
@@ -110,10 +114,14 @@ int main() {
     if (len == 0)
       continue;
     AST *ast_root = parser(content, len);
-    token_print(content, len);
-    AST_print(ast_root);
+    if (DEBUG) {
+      token_print(content, len);
+      AST_print(ast_root);
+    }
     // semantic_check(ast_root);
-    // codegen(ast_root);
+
+    codegen(ast_root, 0);
+    reg = 0;
     free(content);
     freeAST(ast_root);
   }
@@ -347,14 +355,177 @@ void semantic_check(AST *now) {
   }
   // Operand of INC/DEC must be an identifier or identifier with one or more
   // parentheses.
+  if (now->kind == POSTDEC || now->kind == POSTINC) {
+    while (now->mid->kind == LPAR) {
+      now = now->mid;
+    }
+    if (now->mid->kind != IDENTIFIER)
+      err("Operand of increment/decrement must be an identifier.");
+  } else if (now->kind == PREDEC || now->kind == PREINC) {
+    while (now->mid->kind == LPAR) {
+      now = now->mid;
+    }
+    if (now->mid->kind != IDENTIFIER)
+      err("Operand of increment/decrement must be an identifier.");
+  }
+  semantic_check(now->lhs);
+  semantic_check(now->mid);
+  semantic_check(now->rhs);
   // TODO: Implement the remaining semantic_check code.
   // hint: Follow the instruction above and ASSIGN-part code to implement.
   // hint: Semantic of each node needs to be checked recursively (from the
   // current node to lhs/mid/rhs node).
 }
 
-void codegen(AST *root) {
+int get_var_addr(int c) {
+  if (c == 'x')
+    return 0;
+  if (c == 'y')
+    return 4;
+  if (c == 'z')
+    return 8;
+  err("Unexcepted identifier");
+  return -1;
+}
 
+int codegen(AST *root, int depth) {
+  if (!root) {
+    return -1;
+  }
+  int reg_lhs, reg_rhs, reg_dest, reg_mid;
+  int var_addr;
+  int reg_temp;
+  AST *lhs_var;
+  // printf("reg = %d\n", reg);
+  // printf("kind = %d\n", root->kind);
+  switch (root->kind) {
+  case CONSTANT:
+    reg_dest = reg++;
+    if (root->val >= 0) {
+      printf("add r%d 0 %d\n", reg_dest, root->val);
+    } else {
+      printf("sub r%d 0 %d\n", reg_dest, root->val);
+    }
+    return reg_dest;
+  case IDENTIFIER:
+    reg_dest = reg++;
+    var_addr = get_var_addr(root->val);
+    printf("load r%d [%d]\n", reg_dest, get_var_addr(root->val));
+    return reg_dest;
+  case ASSIGN:
+    reg_lhs = codegen(root->lhs, depth + 1);
+    reg_rhs = codegen(root->rhs, depth + 1);
+
+    lhs_var = root->lhs;
+    while (lhs_var->kind == LPAR) { // Handle cases like (((x))) = ...
+      lhs_var = lhs_var->mid;
+    }
+    var_addr = get_var_addr(lhs_var->val);
+
+    printf("store [%d] r%d\n", var_addr, reg_rhs);
+    // printf("reg_lhs = %d\n", reg_lhs);
+    // printf("reg_rhs = %d\n", reg_rhs);
+    return reg_rhs;
+  case ADD:
+    reg_lhs = codegen(root->lhs, depth + 1);
+    reg_rhs = codegen(root->rhs, depth + 1);
+    printf("add r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
+    reg--;
+    return reg_lhs;
+  case SUB:
+    reg_lhs = codegen(root->lhs, depth + 1);
+    reg_rhs = codegen(root->rhs, depth + 1);
+    printf("sub r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
+    reg--;
+    return reg_lhs;
+  case MUL:
+    reg_lhs = codegen(root->lhs, depth + 1);
+    reg_rhs = codegen(root->rhs, depth + 1);
+    printf("mul r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
+    reg--;
+    return reg_lhs;
+  case DIV:
+    reg_lhs = codegen(root->lhs, depth + 1);
+    reg_rhs = codegen(root->rhs, depth + 1);
+    printf("div r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
+    reg--;
+    return reg_lhs;
+  case REM:
+    reg_lhs = codegen(root->lhs, depth + 1);
+    reg_rhs = codegen(root->rhs, depth + 1);
+    printf("rem r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
+    reg--;
+    return reg_lhs;
+  case PREINC:
+    lhs_var = root->mid;
+    while (lhs_var->kind == LPAR)
+      lhs_var = lhs_var->mid;
+    var_addr = get_var_addr(lhs_var->val);
+    reg_mid = reg++;
+    printf("load r%d [%d]\n", reg_mid, var_addr);
+    printf("add r%d r%d 1\n", reg_mid, reg_mid);
+    printf("store [%d] r%d\n", var_addr, reg_mid);
+    return reg_mid;
+  case PREDEC:
+    lhs_var = root->mid;
+    while (lhs_var->kind == LPAR)
+      lhs_var = lhs_var->mid;
+    var_addr = get_var_addr(lhs_var->val);
+    reg_mid = reg++;
+    printf("load r%d [%d]\n", reg_mid, var_addr);
+    printf("sub r%d r%d 1\n", reg_mid, reg_mid);
+    printf("store [%d] r%d\n", var_addr, reg_mid);
+    return reg_mid;
+  case POSTINC:
+    lhs_var = root->mid;
+    while (lhs_var->kind == LPAR)
+      lhs_var = lhs_var->mid;
+    var_addr = get_var_addr(lhs_var->val);
+
+    reg_dest = reg++;
+    printf("load r%d [%d]\n", reg_dest, var_addr);
+
+    reg_temp = reg++;
+    printf("add r%d r%d 1\n", reg_temp, reg_dest); // reg_temp holds new value
+
+    printf("store [%d] r%d\n", var_addr, reg_temp);
+
+    reg--; // Frees reg_temp
+
+    return reg_dest;
+  case POSTDEC:
+    lhs_var = root->mid;
+    while (lhs_var->kind == LPAR)
+      lhs_var = lhs_var->mid;
+    var_addr = get_var_addr(lhs_var->val);
+
+    reg_dest = reg++;
+    printf("load r%d [%d]\n", reg_dest, var_addr);
+
+    reg_temp = reg++;
+    printf("sub r%d r%d 1\n", reg_temp, reg_dest); // reg_temp holds new value
+
+    printf("store [%d] r%d\n", var_addr, reg_temp);
+
+    reg--;
+
+    return reg_dest;
+  case LPAR:
+    return codegen(root->mid, depth + 1);
+  case RPAR:
+    return codegen(root->mid, depth + 1);
+  case PLUS:
+    return codegen(root->mid, depth + 1);
+  case MINUS:
+    reg_mid = codegen(root->mid, depth + 1);
+    printf("sub r%d 0 r%d\n", reg_mid, reg_mid);
+    return reg_mid;
+  case END:
+    return 0;
+  default:
+    err("Unexpected AST node during codegen.");
+    return -1;
+  }
   // TODO: Implement your codegen in your own way.
   // You may modify the function parameter or the return type, even the whole
   // structure as you wish.
