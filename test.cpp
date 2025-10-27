@@ -121,6 +121,35 @@ int tests(int &x, int &y, int &z, int idx) {
     x = (z--) - (y--);
     ;
     return 0;
+  case 14:
+    x = 100;
+    y = 200;
+    z = (x - x) * (x + y + 12345);
+    x = z + (1000 / 10) + (8 % 3);
+    y = x * (z + 1) + 5;
+    z = y - x;
+    x + y + z;
+    return 0;
+  case 15:
+    x = 2;
+    y = 3;
+    z = 5;
+    x = x + y * (z + x * (y + z * (x + y * (z + 10))));
+    y = x + z;
+    z = y + x;
+    return 0;
+  case 16:
+    return -1;
+  case 17:
+    x = 10;
+    y = 10;
+    // z = (x++) - x;
+    x = 10;
+    // y = (x++) - (x++);
+    return 0;
+  case 18:
+    // y = x + (++x);
+    return 0;
   default:
     return -1;
   }

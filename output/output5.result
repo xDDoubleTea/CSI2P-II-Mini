@@ -4,7 +4,7 @@ add r0 0 6
 store [4] r0
 sub r0 0 32
 store [0] r0
-load r0 [0]
+add r0 r0 0
 add r1 r0 0
 mul r0 r0 r1
 add r1 0 144
@@ -12,27 +12,27 @@ sub r0 r0 r1
 store [4] r0
 load r0 [8]
 add r1 r0 0
-div r0 r0 r1
-load r1 [8]
-sub r1 0 r1
-sub r1 0 r1
-sub r1 0 r1
-sub r1 0 r1
-load r2 [8]
-sub r1 r1 r2
-add r0 r0 r1
-load r1 [0]
-load r2 [8]
-mul r1 r1 r2
-load r2 [8]
-rem r1 r1 r2
-add r0 r0 r1
-add r1 0 0
-add r0 r0 r1
-load r1 [0]
-load r2 [4]
-mul r1 r1 r2
-sub r0 r0 r1
+add r0 0 1
+add r2 r0 0
+sub r2 0 r2
+sub r2 0 r2
+sub r2 0 r2
+sub r2 0 r2
+add r3 r0 0
+sub r2 r2 r3
+add r0 r0 r2
+load r2 [0]
+load r3 [8]
+mul r2 r2 r3
+load r3 [8]
+rem r2 r2 r3
+add r0 r0 r2
+add r2 0 0
+add r0 r0 r2
+load r2 [0]
+load r3 [4]
+mul r2 r2 r3
+sub r0 r0 r2
 store [8] r0
 load r0 [4]
 sub r0 0 r0

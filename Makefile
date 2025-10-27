@@ -1,7 +1,7 @@
 CC = clang
 CXX = clang++
 
-CFLAGS = -Wall -Werror -g
+CFLAGS =-g
 CFLAGS += -O2
 
 main: main.c

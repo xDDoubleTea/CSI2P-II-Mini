@@ -14,7 +14,7 @@ load r0 [4]
 load r1 [0]
 add r0 r0 r1
 store [8] r0
-load r0 [8]
+add r0 r0 0
 sub r0 r0 1
 store [8] r0
 load r1 [0]
