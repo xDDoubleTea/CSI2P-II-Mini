@@ -130,8 +130,6 @@ int main() {
     }
     semantic_check(ast_root);
     reg = 0;
-    for (int i = 0; i < 8; ++i)
-      reg_holds[i] = 0;
     codegen(ast_root, 0);
     reg = 0;
     free(content);
@@ -489,6 +487,15 @@ int side_effect_free(AST *root) {
   }
 }
 
+int find_reg_holding(int iden) {
+  for (int i = 0; i < 8; ++i) {
+    if (reg_holds[i] == iden) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 int codegen(AST *root, int depth) {
   if (!root) {
     return -1;
@@ -508,6 +515,7 @@ int codegen(AST *root, int depth) {
   int var_addr;
   int reg_temp;
   AST *lhs_var;
+  int found_reg;
   // printf("reg = %d\n", reg);
   // printf("kind = %d\n", root->kind);
   switch (root->kind) {
@@ -600,10 +608,33 @@ int codegen(AST *root, int depth) {
       printf("sub r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
     else if (root->kind == MUL)
       printf("mul r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
-    else if (root->kind == DIV)
+    else if (root->kind == DIV) {
+      if ((root->lhs->kind == IDENTIFIER && root->rhs->kind == CONSTANT &&
+           root->rhs->val == 1)) {
+        printf("add r%d r%d 0\n", reg_lhs, reg_lhs);
+        return reg_lhs;
+      }
+      if ((root->lhs->kind == IDENTIFIER && root->rhs->kind == IDENTIFIER &&
+           root->lhs->val == root->rhs->val && side_effect_free(root->lhs) &&
+           side_effect_free(root->rhs))) {
+        printf("add r%d 0 1\n", reg_lhs);
+        return reg_lhs;
+      }
       printf("div r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
-    else
+    } else if (root->kind == REM) {
+      if ((root->lhs->kind == IDENTIFIER && root->rhs->kind == CONSTANT &&
+           root->rhs->val == 1)) {
+        printf("add r%d 0 0\n", reg_lhs);
+        return reg_lhs;
+      }
+      if ((root->lhs->kind == IDENTIFIER && root->rhs->kind == IDENTIFIER &&
+           root->lhs->val == root->rhs->val && side_effect_free(root->lhs) &&
+           side_effect_free(root->rhs))) {
+        printf("add r%d 0 0\n", reg_lhs);
+        return reg_lhs;
+      }
       printf("rem r%d r%d r%d\n", reg_lhs, reg_lhs, reg_rhs);
+    }
     reg--;
     if (reg_lhs >= 0 && reg_lhs < 8) {
       reg_holds[reg_lhs] = 0;
@@ -616,6 +647,16 @@ int codegen(AST *root, int depth) {
       lhs_var = lhs_var->mid;
     var_addr = get_var_addr(lhs_var->val);
     reg_mid = reg++;
+    found_reg = find_reg_holding(lhs_var->val);
+    if (found_reg != -1) {
+      printf("add r%d r%d 0\n", reg_mid, found_reg);
+      printf("add r%d r%d 1\n", reg_mid, reg_mid);
+      printf("store [%d] r%d\n", var_addr, reg_mid);
+      if (reg_mid >= 0 && reg_mid < 8)
+        reg_holds[reg_mid] = lhs_var->val;
+      invalidate_reg(lhs_var->val, reg_mid);
+      return reg_mid;
+    }
     printf("load r%d [%d]\n", reg_mid, var_addr);
     printf("add r%d r%d 1\n", reg_mid, reg_mid);
     printf("store [%d] r%d\n", var_addr, reg_mid);
@@ -629,6 +670,18 @@ int codegen(AST *root, int depth) {
       lhs_var = lhs_var->mid;
     var_addr = get_var_addr(lhs_var->val);
     reg_mid = reg++;
+
+    found_reg = find_reg_holding(lhs_var->val);
+    // printf("found_reg = %d\n", found_reg);
+    if (found_reg != -1) {
+      printf("add r%d r%d 0\n", reg_mid, found_reg);
+      printf("sub r%d r%d 1\n", reg_mid, reg_mid);
+      printf("store [%d] r%d\n", var_addr, reg_mid);
+      if (reg_mid >= 0 && reg_mid < 8)
+        reg_holds[reg_mid] = lhs_var->val;
+      invalidate_reg(lhs_var->val, reg_mid);
+      return reg_mid;
+    }
     printf("load r%d [%d]\n", reg_mid, var_addr);
     printf("sub r%d r%d 1\n", reg_mid, reg_mid);
     printf("store [%d] r%d\n", var_addr, reg_mid);
