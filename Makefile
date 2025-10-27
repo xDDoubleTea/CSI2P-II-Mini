@@ -1,14 +1,14 @@
-CC = clang
-CXX = clang++
+CC = gcc
+CXX = g++
 
 CFLAGS =-g
-CFLAGS += -O2
+CXXFLAGS = -g -std=c++11
 
 main: main.c
 	$(CC) $(CFLAGS) main.c -o main.out
 test: main.c ./AssemblyCompiler/ASMC.cpp
 	$(CC) $(CFLAGS) main.c -o main.out
-	$(CXX) $(CFLAGS) ./AssemblyCompiler/ASMC.cpp -o ASMC.out
+	$(CXX) $(CXXFLAGS) ./AssemblyCompiler/ASMC.cpp -o ASMC.out
 	./main.out | ./ASMC.out
 check: test.cpp
 	$(CXX) $(CFLAGS) test.cpp -o test.out
