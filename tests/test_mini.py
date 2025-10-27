@@ -2,8 +2,9 @@ import re
 import subprocess
 import random
 from typing import List
+import os
 
-testcases_len = 13
+testcases_len = len(os.listdir("testcase"))
 
 tests = [f"testcase/test{i + 1}.in" for i in range(testcases_len)]
 
