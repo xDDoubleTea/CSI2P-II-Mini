@@ -3,7 +3,7 @@ import subprocess
 import random
 from typing import List
 
-testcases_len = 12
+testcases_len = 13
 
 tests = [f"testcase/test{i + 1}.in" for i in range(testcases_len)]
 

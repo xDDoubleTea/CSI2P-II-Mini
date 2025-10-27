@@ -115,7 +115,9 @@ int tests(int &x, int &y, int &z, int idx) {
     x = (y++) / 1;
     x = (y++) % 1;
     x = (y++) - 0;
-    z = (++y) / 1;
+    z = y / y;
+    z = x / x;
+    z = z / z;
     x = (z--) - (y--);
     ;
     return 0;
