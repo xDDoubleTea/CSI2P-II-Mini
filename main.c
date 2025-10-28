@@ -107,6 +107,7 @@ void token_print(Token *in, size_t len);
 void AST_print(AST *head);
 // Check if the statement does something
 int check_assign_or_inc_dec(Token *content, size_t len);
+// Constant folding
 int eval_constant(AST *root);
 
 char input[MAX_LENGTH];
@@ -137,6 +138,7 @@ int main() {
   }
   return 0;
 }
+
 int eval_constant(AST *root) {
   if (!root)
     return NOT_A_CONSTANT;
